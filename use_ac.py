@@ -1,34 +1,53 @@
+import json
 import time
 from datetime import datetime, timedelta
+import requests
 from nt_models import CabinClass, PriceFilter
 from nt_parser import convert_ac_response_to_models, results_to_excel
 from nt_filter import filter_prices, filter_airbounds, AirBoundFilter
 from ac_searcher import Ac_Searcher
 from utils import date_range
 
+def report(name, count):
+    header = {
+        "Content-Type": "application/json",
+        "charset": "utf-8"
+    }
+    data=json.dumps({
+        "title": "UA:"+ str(count),
+        "device_key": "REPLACE",
+        "body": name,
+        "category": "myNotificationCategory",
+        "sound": "minuet.caf",
+        "badge": 1,
+        "icon": "https://day.app/assets/images/avatar.jpg",
+        "group": "test",
+        "level": "timeSensitive",
+    })
+    url = "https://api.day.app/push"
+    resp = requests.post(url, data=data, headers=header, timeout=10000)
+    print("Sent" if resp.status_code == 200 else resp.json())
+
 if __name__ == '__main__':
-    origins = ['LAX']
-    destinations = ['TYO']
-    start_dt = '2024-02-01'
-    end_dt = '2024-02-01'
+    origins = ['TPE']
+    destinations = ['SFO']
+    start_dt = '2023-05-18'
+    end_dt = '2023-05-24'
     dates = date_range(start_dt, end_dt)
     #  means eco, pre, biz and first
     cabin_class = [
-        "ECO",
-        "PRE",
         "BIZ",
-        "FIRST"
     ]
     airbound_filter = AirBoundFilter(
-        max_stops=1,
+        max_stops=0,
         airline_include=[],
-        airline_exclude=['ET'],
+        airline_exclude=['ET','UA'],
     )
     price_filter = PriceFilter(
         min_quota=1,
         max_miles_per_person=999999,
         preferred_classes=[CabinClass.J, CabinClass.F, CabinClass.Y],
-        mixed_cabin_accepted=True
+        mixed_cabin_accepted=False
     )
     # seg_sorter = {
     #     'key': 'departure_time',  # only takes 'duration_in_all', 'stops', 'departure_time' and 'arrival_time'.
@@ -50,4 +69,4 @@ if __name__ == '__main__':
     results = []
     for x in airbounds:
         results.extend(x.to_flatted_list())
-    results_to_excel(results)
+    print(results)
